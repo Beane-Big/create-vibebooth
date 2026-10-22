@@ -8,7 +8,7 @@
 //   node scripts/vb.mjs dev       启动前端开发服务器
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 // 平台本体的 Compose 项目名，安装器镜像和容器都按它命名。
@@ -16,6 +16,9 @@ const platformProject = "home-platform";
 const installerImage = `${platformProject}-installer`;
 const goImage = "golang:1.26";
 const sdkModule = "github.com/Beane-Big/vibebooth/packages/sdk-go";
+const isWindows = process.platform === "win32";
+// 容器里按本机用户写文件，生成的文件不归 root。Windows 上没有 uid，Docker Desktop 会自己处理文件属主。
+const asUser = isWindows ? [] : ["--user", `${process.getuid()}:${process.getgid()}`];
 
 function die(msg) {
   console.error("错误: " + msg);
@@ -23,7 +26,8 @@ function die(msg) {
 }
 
 function run(cmd, args, opts = {}) {
-  const res = spawnSync(cmd, args, { cwd: root, stdio: "inherit", ...opts });
+  // Windows 上的 npm 是 npm.cmd，要经过 shell 才能运行。
+  const res = spawnSync(cmd, args, { cwd: root, stdio: "inherit", shell: isWindows && cmd === "npm", ...opts });
   if (res.error) die(`${cmd} 无法运行：${res.error.message}`);
   if (res.status !== 0) die(`${cmd} ${args[0]} 失败`);
   return res;
@@ -61,7 +65,7 @@ function vendor() {
   console.log("下载后端依赖…");
   const cache = join(root, ".cache", "gomod");
   mkdirSync(cache, { recursive: true });
-  const args = ["run", "--rm", "--user", `${process.getuid()}:${process.getgid()}`,
+  const args = ["run", "--rm", ...asUser,
     "-v", `${backend}:/src`, "-v", `${cache}:/gomod`, "-w", "/src",
     "-e", "HOME=/tmp", "-e", "GOMODCACHE=/gomod", "-e", "GOPRIVATE=github.com/Beane-Big/*",
     "-e", "GH_TOKEN"];
@@ -107,8 +111,8 @@ function pack() {
     console.log("导出镜像…");
     run("docker", ["save", "-o", join(tmp, "images.tar"), ...images]);
     const out = `dist/${id}-${version}.zip`;
-    run("docker", ["run", "--rm", "--user", `${process.getuid()}:${process.getgid()}`, "-v", `${root}:/work`, "-w", "/work",
-      installerImage, "pack", ".", `dist/${tmp.split("/").pop()}/images.tar`, out]);
+    run("docker", ["run", "--rm", ...asUser, "-v", `${root}:/work`, "-w", "/work",
+      installerImage, "pack", ".", `dist/${basename(tmp)}/images.tar`, out]);
     return out;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
