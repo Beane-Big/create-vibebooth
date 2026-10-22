@@ -1,0 +1,11 @@
+# __NAME__（__ID__）模块约定（给 AI 编码工具和自己看）
+
+这是一个 Vibebooth 模块，遵循模块规范 `platform: 1`：https://github.com/Beane-Big/vibebooth/blob/main/docs/module-spec.md 。不符合规范时 `npm run pack` 会直接报错。下面是本模块自己的约定。
+
+- 模块 id 是 `__ID__`：页面在 `/apps/__ID__/` 下，接口在 `/api/__ID__/` 下，容器叫 `__ID__-frontend` 和 `__ID__-backend`。
+- 不要自己写网关路由标签、端口映射或网络，安装器会补上；`compose.yaml` 允许的字段见规范。
+- 不写登录代码。后端用 SDK `github.com/Beane-Big/vibebooth/packages/sdk-go/auth` 拿当前用户，接口权限用 `HasMenu("<菜单 id>")` 判断。
+- 后端必须保留 `GET /api/__ID__/health`，正常时返回 2xx。
+- 数据只存在 `compose.yaml` 里声明的卷里，默认用 SQLite。改表结构要兼容老数据。
+- 要调用其他模块，只调用对方 `/api/<id>/ext/v1/` 下的对外接口，并在 `module.yaml` 的 `requires` 里写上对方。
+- 发布新版本前把 `module.yaml` 的 `version` 改大，再运行 `npm run pack`。

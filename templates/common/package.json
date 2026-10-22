@@ -1,0 +1,12 @@
+{
+  "name": "vibebooth-module-__ID__",
+  "private": true,
+  "version": "0.0.0",
+  "description": "__DESCRIPTION__",
+  "scripts": {
+    "pack": "node scripts/vb.mjs pack",
+    "install:local": "node scripts/vb.mjs install",
+    "vendor": "node scripts/vb.mjs vendor",
+    "dev": "node scripts/vb.mjs dev"
+  }
+}

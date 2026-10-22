@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>__NAME__</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="back" href="/">← 返回应用</a>
+      <span class="title">__NAME__</span>
+    </header>
+    <main class="content stack">
+      <section class="card stack">
+        <h1 id="greeting">你好</h1>
+        <p class="muted">__DESCRIPTION__</p>
+        <p id="error" class="error" hidden></p>
+      </section>
+      <section id="notes-card" class="card stack" hidden>
+        <h1>笔记</h1>
+        <form id="note-form" class="actions">
+          <input id="note-text" placeholder="写点什么" />
+          <button type="submit">保存</button>
+        </form>
+        <ul id="notes" class="list"></ul>
+      </section>
+    </main>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
