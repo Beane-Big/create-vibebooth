@@ -13,7 +13,10 @@ import { basename, join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 // 平台本体的 Compose 项目名，安装器镜像和容器都按它命名。
 const platformProject = "home-platform";
-const installerImage = `${platformProject}-installer`;
+// 打包时用安装器镜像检查模块包。本机跑着平台时用平台自己的，保证和要装进去的平台规则一致；
+// 没有平台时用发布版，对应平台仓库的标签 installer/v<版本>。
+const localInstaller = `${platformProject}-installer`;
+const releasedInstaller = "ghcr.io/beane-big/vibebooth-installer:__INSTALLER_VERSION__";
 const goImage = "golang:1.26";
 const sdkModule = "github.com/Beane-Big/vibebooth/packages/sdk-go";
 const isWindows = process.platform === "win32";
@@ -88,11 +91,22 @@ function vendorIfNeeded() {
   if (mtime(modules) < Math.max(mtime(join(backend, "go.mod")), mtime(join(backend, "go.sum")))) vendor();
 }
 
+// installer 返回打包要用的安装器镜像，本机没有时下载发布版。
+function installer() {
+  if (output("docker", ["image", "inspect", localInstaller])) return localInstaller;
+  if (output("docker", ["image", "inspect", releasedInstaller])) return releasedInstaller;
+  console.log(`下载安装器镜像 ${releasedInstaller}…`);
+  const res = spawnSync("docker", ["pull", releasedInstaller], { stdio: "inherit" });
+  if (res.status !== 0) {
+    die(`下载不了 ${releasedInstaller}。镜像还是私有的话，先用有 read:packages 权限的令牌运行 docker login ghcr.io；` +
+      "也可以先在平台仓库里运行 docker compose up -d --build，改用本机平台的安装器");
+  }
+  return releasedInstaller;
+}
+
 function pack() {
   const { id, version } = manifest();
-  if (!output("docker", ["image", "inspect", installerImage])) {
-    die(`找不到安装器镜像 ${installerImage}，请先在平台仓库里运行 docker compose up -d --build`);
-  }
+  const installerImage = installer();
   vendorIfNeeded();
   // 前端镜像按 package-lock.json 安装依赖，还没有锁文件时先生成一个。
   const frontend = join(root, "frontend");
