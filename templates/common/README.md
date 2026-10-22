@@ -6,7 +6,7 @@ __DESCRIPTION__
 
 ## 常用命令
 
-都在本目录运行。前提是本机已经用 `docker compose up -d` 跑着 Vibebooth 平台。
+都在本目录运行，需要 Node.js 和 Docker。`npm run pack` 只需要这两样；`install:local` 和 `dev` 还要求本机已经用 `docker compose up -d` 跑着 Vibebooth 平台。
 
 | 命令 | 做什么 |
 | --- | --- |
@@ -16,5 +16,7 @@ __DESCRIPTION__
 | `npm run vendor` | 重新下载后端依赖（改了 `backend/go.mod` 之后运行） |
 
 后端依赖的 SDK 在私有仓库里时，下载要用 GitHub 令牌：先 `export VIBEBOOTH_GITHUB_TOKEN=<令牌>`，或者让 git 记住 github.com 的登录。
+
+本机没有平台时，`npm run pack` 会下载安装器镜像 `ghcr.io/beane-big/vibebooth-installer`。这个镜像还是私有的话，先用有 `read:packages` 权限的令牌运行一次 `docker login ghcr.io`。
 
 发布新版本前，把 `module.yaml` 的 `version` 改大。
