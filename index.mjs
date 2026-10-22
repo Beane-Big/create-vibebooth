@@ -62,7 +62,8 @@ async function main() {
   // 下面几步失败不影响已经生成的文件，只提示怎么补做。
   const step = (label, cmd, args, cwd = dir) => {
     console.log(`\n${label}…`);
-    const res = spawnSync(cmd, args, { cwd, stdio: "inherit" });
+    // Windows 上的 npm 是 npm.cmd，要经过 shell 才能运行。
+    const res = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: process.platform === "win32" && cmd === "npm" });
     if (res.status !== 0) console.log(`（${label}没有成功，稍后可以在模块目录里重新运行 ${cmd} ${args.join(" ")}）`);
     return res.status === 0;
   };
