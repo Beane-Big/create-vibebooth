@@ -5,8 +5,8 @@
   "description": "__DESCRIPTION__",
   "scripts": {
     "pack": "node scripts/vb.mjs pack",
+    "pack:source": "node scripts/vb.mjs source",
     "install:local": "node scripts/vb.mjs install",
-    "vendor": "node scripts/vb.mjs vendor",
     "dev": "node scripts/vb.mjs dev"
   }
 }

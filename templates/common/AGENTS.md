@@ -8,4 +8,5 @@
 - 后端必须保留 `GET /api/__ID__/health`，正常时返回 2xx。
 - 数据只存在 `compose.yaml` 里声明的卷里，默认用 SQLite。改表结构要兼容老数据。
 - 要调用其他模块，只调用对方 `/api/<id>/ext/v1/` 下的对外接口，并在 `module.yaml` 的 `requires` 里写上对方。
-- 发布新版本前把 `module.yaml` 的 `version` 改大，再运行 `npm run pack`。
+- 发布新版本前把 `module.yaml` 的 `version` 改大，再运行 `npm run pack`，或者 `npm run pack:source` 后上传到平台的构建器。
+- 后端加了 Go 依赖不用在本机运行 `go mod tidy`，构建镜像时会补齐；Dockerfile 里的 `ARG GOPROXY`、`ARG NPM_REGISTRY` 和缓存挂载不要删，服务器构建靠它们换镜像源、复用下载过的依赖。

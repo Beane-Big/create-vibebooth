@@ -69,13 +69,13 @@ async function main() {
   };
   step("初始化 git 仓库", "git", ["init", "-q", "-b", "main"]);
   if (frontend === "react" || frontend === "vue") step("安装前端依赖", "npm", ["install", "--no-audit", "--no-fund"], resolve(dir, "frontend"));
-  if (backend === "go") step("下载后端依赖", "node", ["scripts/vb.mjs", "vendor"]);
 
   console.log(`
 完成。接下来：
   cd vibebooth-module-${id}
   npm run install:local   装到本机平台，然后打开 http://localhost:8080
-  npm run pack            生成要上传到正式平台的 zip
+  npm run pack            生成要上传到正式平台的 zip（要 Docker）
+  npm run pack:source     生成源码包，上传到平台的“构建器”，在服务器上构建（不要 Docker）
 
 开发规范见 AGENTS.md；用 AI 编码工具时，让它先读这个文件。`);
 }
