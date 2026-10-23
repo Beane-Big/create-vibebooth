@@ -24,13 +24,15 @@ npx github:Beane-Big/create-vibebooth ledger
 
 `npm run install:local` 和 `npm run dev` 才需要本机跑着平台。
 
+生成后想换 id 或名称，在模块目录里运行 `npm run rename -- <新 id> [新名称]`，不用重新生成。id 要在第一次安装前定好：装过的模块改 id 会变成另一个应用，旧数据不会跟过去。
+
 ## 生成了什么
 
 | 文件 | 内容 |
 | --- | --- |
 | `module.yaml` | 模块清单：名称、版本、端口、默认菜单 |
 | `compose.yaml` | 镜像名、构建目录、数据卷，已经符合安装器规则 |
-| `package.json` | `npm run pack` / `pack:source` / `install:local` / `dev` |
+| `package.json` | `npm run pack` / `pack:source` / `install:local` / `dev` / `rename` |
 | `scripts/vb.mjs` | 上面几条命令的实现，调用安装器镜像打包 |
 | `AGENTS.md` | 给 AI 编码工具看的约定，链接到平台的模块规范 |
 | `frontend/` | 选的前端模板，已配好 `/apps/<id>/` 路径和接口代理 |
