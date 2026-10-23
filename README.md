@@ -15,9 +15,14 @@ npx github:Beane-Big/create-vibebooth ledger
 3. 后端：Go / 不要后端
 4. 需不需要保存数据（预置 SQLite 和一个数据卷）
 
-生成的目录是 `vibebooth-module-<id>/`，并自动 `git init`、安装前端依赖、下载后端依赖。
+生成的目录是 `vibebooth-module-<id>/`，并自动 `git init`、安装前端依赖。后端的 Go 依赖在构建镜像时下载，本机不用装 Go。
 
-前提：Node.js 20.11 以上和 Docker。`npm run pack` 不需要本机有平台：本机跑着平台时用平台自己的安装器镜像，没有时自动下载发布版 `ghcr.io/beane-big/vibebooth-installer`；`npm run install:local` 和 `npm run dev` 才需要本机跑着平台。仓库是私有的时候，`npx github:` 和下载 SDK 都需要 GitHub 登录：在 WSL 里让 git 记住 github.com 的登录，或者设置环境变量 `VIBEBOOTH_GITHUB_TOKEN`。
+前提：Node.js 20.11 以上。打包有两种方式：
+
+- `npm run pack:source`：只要 Node.js，把源码打成 zip，上传到平台的“构建器”页面，由服务器构建出软件包。
+- `npm run pack`：要 Docker，在本机构建出软件包。不需要本机有平台：本机跑着平台时用平台自己的安装器镜像，没有时自动下载发布版 `ghcr.io/beane-big/vibebooth-installer`。
+
+`npm run install:local` 和 `npm run dev` 才需要本机跑着平台。
 
 ## 生成了什么
 
@@ -25,7 +30,7 @@ npx github:Beane-Big/create-vibebooth ledger
 | --- | --- |
 | `module.yaml` | 模块清单：名称、版本、端口、默认菜单 |
 | `compose.yaml` | 镜像名、构建目录、数据卷，已经符合安装器规则 |
-| `package.json` | `npm run pack` / `install:local` / `dev` / `vendor` |
+| `package.json` | `npm run pack` / `pack:source` / `install:local` / `dev` |
 | `scripts/vb.mjs` | 上面几条命令的实现，调用安装器镜像打包 |
 | `AGENTS.md` | 给 AI 编码工具看的约定，链接到平台的模块规范 |
 | `frontend/` | 选的前端模板，已配好 `/apps/<id>/` 路径和接口代理 |
@@ -37,7 +42,5 @@ npx github:Beane-Big/create-vibebooth ledger
 npm test                 # 生成每种组合，检查文件
 VB_E2E=1 npm test        # 再把每种组合装到本机平台（慢）
 ```
-
-测试平台本身的 SDK 改动时，可以设置 `VIBEBOOTH_SDK_DIR=<平台仓库>/packages/sdk-go`，下载依赖时改用本地 SDK。
 
 改模板时注意：模板里的 `__ID__`、`__NAME__`、`__DESCRIPTION__`、`__SDK_VERSION__`、`__INSTALLER_VERSION__`、`__HAS_BACKEND__`、`__HAS_DATA__` 由 `lib/generate.mjs` 替换；`_gitignore` 会改名为 `.gitignore`。平台的 SDK 或安装器镜像发新版本后，更新 `lib/generate.mjs` 里的 `sdkVersion` 或 `installerVersion`。
