@@ -64,6 +64,16 @@ for (const combo of combos) {
       assert.equal(/^volumes:/m.test(compose), combo.data);
       assert.throws(() => generate(dir, { id, name: "测试", ...combo }), /不为空/);
 
+      // 改名后不应再留下旧 id 和旧名称。新 id 带上原 id，开着 VB_E2E 时各组合装到本机也不会互相覆盖。
+      const renamed = spawnSync("node", ["scripts/vb.mjs", "rename", `${id}-renamed`, "新名字"], { cwd: dir, encoding: "utf8" });
+      assert.equal(renamed.status, 0, renamed.stderr);
+      for (const f of files(dir)) {
+        const text = readFileSync(f, "utf8");
+        assert.doesNotMatch(text, new RegExp(`(?<![a-z0-9-])${id}(?![a-z0-9-])`), `${f} 里还有旧 id`);
+        assert.doesNotMatch(text, />测试<|"测试"|^# 测试$|^\/\/ 测试 /m, `${f} 里还有旧名称`);
+      }
+      assert.match(readFileSync(join(dir, "module.yaml"), "utf8"), new RegExp(`^id: ${id}-renamed .*\nname: "新名字"`, "m"));
+
       if (process.env.VB_E2E) {
         const res = spawnSync("npm", ["run", "install:local"], { cwd: dir, stdio: "inherit" });
         assert.equal(res.status, 0, `${label} 安装失败`);
