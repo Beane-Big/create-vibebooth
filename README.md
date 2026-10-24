@@ -19,8 +19,8 @@ npx github:Beane-Big/create-vibebooth ledger
 
 前提：Node.js 20.11 以上。打包有两种方式：
 
-- `npm run pack:source`：只要 Node.js，把源码打成 zip，上传到平台的“构建器”页面，由服务器构建出软件包。
-- `npm run pack`：要 Docker，在本机构建出软件包。不需要本机有平台：本机跑着平台时用平台自己的安装器镜像，没有时自动下载发布版 `ghcr.io/beane-big/vibebooth-installer`。
+- `npm run pack:source`（推荐）：只要 Node.js，把源码打成 zip，上传到平台的“构建器”页面，由服务器构建出软件包。
+- `npm run pack`：要 Docker，在本机构建出软件包，平台还没装构建器时用。不需要本机有平台：本机跑着平台时用平台自己的安装器镜像，没有时自动下载发布版 `ghcr.io/beane-big/vibebooth-installer`。
 
 `npm run install:local` 和 `npm run dev` 才需要本机跑着平台。
 

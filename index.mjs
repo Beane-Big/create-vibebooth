@@ -73,9 +73,9 @@ async function main() {
   console.log(`
 完成。接下来：
   cd vibebooth-module-${id}
-  npm run install:local   装到本机平台，然后打开 http://localhost:8080
-  npm run pack            生成要上传到正式平台的 zip（要 Docker）
-  npm run pack:source     生成源码包，上传到平台的“构建器”，在服务器上构建（不要 Docker）
+  npm run pack:source     生成源码包，上传到平台的“构建器”，在服务器上构建（推荐，不要 Docker）
+  npm run pack            在本机构建出要上传到“应用管理”页的 zip（要 Docker）
+  npm run install:local   装到本机平台，然后打开 http://localhost:8080（要 Docker 和本机平台）
 
 开发规范见 AGENTS.md；用 AI 编码工具时，让它先读这个文件。`);
 }
