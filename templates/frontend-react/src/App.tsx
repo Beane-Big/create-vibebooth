@@ -38,9 +38,6 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <a className="back" href="/">
-          ← 返回应用
-        </a>
         <span className="title">__NAME__</span>
       </header>
       <main className="content stack">
