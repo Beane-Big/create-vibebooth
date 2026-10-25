@@ -32,7 +32,6 @@ async function add() {
 
 <template>
   <header class="topbar">
-    <a class="back" href="/">← 返回应用</a>
     <span class="title">__NAME__</span>
   </header>
   <main class="content stack">
