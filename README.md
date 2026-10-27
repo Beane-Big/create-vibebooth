@@ -1,6 +1,6 @@
 # create-vibebooth
 
-生成一个 [Vibebooth](https://github.com/Beane-Big/vibebooth) 模块或门户主题的骨架。生成的模块可以直接打包成合规的 zip，上传到 Vibebooth 的“应用管理”页安装。脚手架只管开头，生成之后就不再参与，规范由平台安装器在打包和安装时检查。
+生成一个 [Vibebooth](https://github.com/Beane-Big/vibebooth) 模块的骨架。生成的模块可以直接打包成合规的 zip，上传到 Vibebooth 的“应用管理”页安装。脚手架只管开头，生成之后就不再参与，规范由平台安装器在打包和安装时检查。
 
 ## 用法
 
@@ -39,22 +39,6 @@ npx github:Beane-Big/create-vibebooth ledger
 
 生成后想换 id 或名称，在模块目录里运行 `npm run rename -- <新 id> [新名称]`，不用重新生成。id 要在第一次安装前定好：装过的模块改 id 会变成另一个应用，旧数据不会跟过去。
 
-## 主题：theme 命令
-
-```bash
-npx github:Beane-Big/create-vibebooth theme aurora
-```
-
-生成一个门户主题 `vibebooth-theme-<id>/`（规范见平台的[主题规范](https://github.com/Beane-Big/vibebooth/blob/main/docs/theme-spec.md)）。主题能换门户的颜色、背景、表单和卡片的样式、玻璃效果，以及首页的应用列表；模块的页面不受影响。生成的主题是一个能直接用的玻璃效果示例，带本机预览页。
-
-| 命令 | 做什么 |
-| --- | --- |
-| `npm run dev` | 本机预览：模拟门户的顶栏、首页和常见组件，可切换深浅色 |
-| `npm run pack` | 构建并生成主题包 zip，上传到平台的“设置 → 主题”页 |
-| `npm run install:local` | 打包并装到本机平台（要 Docker 和本机平台） |
-
-生成的 `AGENTS.md` 写着主题能改什么、不能改什么，用 AI 编码工具时让它先读。
-
 ## 生成了什么
 
 | 文件 | 内容 |
@@ -74,4 +58,4 @@ npm test                 # 生成每种组合，检查文件
 VB_E2E=1 npm test        # 再把每种组合装到本机平台（慢）
 ```
 
-改模板时注意：主题模板在 `templates/theme/`，只替换 `__ID__`、`__NAME__`、`__DESCRIPTION__`（`lib/theme.mjs`）。模块模板里的 `__ID__`、`__NAME__`、`__DESCRIPTION__`、`__SDK_VERSION__`、`__INSTALLER_VERSION__`、`__HAS_BACKEND__`、`__HAS_DATA__`、`__LEVEL__` 由 `lib/generate.mjs` 替换；`_gitignore` 会改名为 `.gitignore`。平台的 SDK 或安装器镜像发新版本后，更新 `lib/generate.mjs` 里的 `sdkVersion` 或 `installerVersion`。
+改模板时注意：模板里的 `__ID__`、`__NAME__`、`__DESCRIPTION__`、`__SDK_VERSION__`、`__INSTALLER_VERSION__`、`__HAS_BACKEND__`、`__HAS_DATA__`、`__LEVEL__` 由 `lib/generate.mjs` 替换；`_gitignore` 会改名为 `.gitignore`。平台的 SDK 或安装器镜像发新版本后，更新 `lib/generate.mjs` 里的 `sdkVersion` 或 `installerVersion`。
