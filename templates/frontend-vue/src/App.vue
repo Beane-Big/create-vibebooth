@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { api, type Note } from "./api";
-import { hasBackend, hasData } from "./config";
+import { hasData } from "./config";
+import { getMe } from "./platform";
 
 // 首页：显示当前用户，有数据时演示读写。换成你自己的页面即可。
 const name = ref("");
@@ -10,10 +11,10 @@ const text = ref("");
 const error = ref("");
 
 onMounted(async () => {
-  if (!hasBackend) return;
+  name.value = (await getMe()).name;
+  if (!hasData) return;
   try {
-    name.value = (await api.me()).name;
-    if (hasData) notes.value = await api.notes();
+    notes.value = await api.notes();
   } catch (err) {
     error.value = err instanceof Error ? err.message : "读取失败";
   }

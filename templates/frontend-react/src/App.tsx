@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, type Note } from "./api";
-import { hasBackend, hasData } from "./config";
+import { hasData } from "./config";
+import { getMe } from "./platform";
 
 // 首页：显示当前用户，有数据时演示读写。换成你自己的页面即可。
 export default function App() {
@@ -10,11 +11,7 @@ export default function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!hasBackend) return;
-    api
-      .me()
-      .then((me) => setName(me.name))
-      .catch((err) => setError(err.message));
+    getMe().then((me) => setName(me.name));
     if (hasData) {
       api
         .notes()

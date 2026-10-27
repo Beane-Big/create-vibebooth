@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // 生成一个 Vibebooth 模块：npx github:Beane-Big/create-vibebooth <模块 id>
-// 生成以后脚手架就不再参与，规则由平台安装器在打包和安装时检查。
+// 在模块目录里升一级：npx github:Beane-Big/create-vibebooth add <backend | data | permissions | persons>
+// 规则由平台安装器在打包和安装时检查。
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
+import { add, features } from "./lib/add.mjs";
 import { backends, frontends, generate, validate } from "./lib/generate.mjs";
 
 // 自己排队读行，而不用 rl.question：输入是管道时，提问之前就到达的行不会丢。
@@ -76,11 +78,36 @@ async function main() {
   npm run pack:source     生成源码包，上传到平台的“构建器”，在服务器上构建（推荐，不要 Docker）
   npm run pack            在本机构建出要上传到“应用管理”页的 zip（要 Docker）
   npm run install:local   装到本机平台，然后打开 http://localhost:8080（要 Docker 和本机平台）
+  npm run standalone      离开平台在本机单独运行（有后端时要装 Go）
 
 开发规范见 AGENTS.md；用 AI 编码工具时，让它先读这个文件。`);
 }
 
-main().catch((err) => {
+// addFeature 处理 add 命令，不用交互。
+function addFeature(feature) {
+  if (!feature) {
+    console.log("用法：npx github:Beane-Big/create-vibebooth add <功能>，在模块目录里运行\n");
+    for (const [k, v] of Object.entries(features)) console.log(`  ${k.padEnd(12)}${v}`);
+    process.exit(1);
+  }
+  const { done, manual } = add(process.cwd(), feature);
+  for (const d of done) console.log("✓ " + d);
+  if (manual.length) {
+    console.log("\n还要手工做：");
+    for (const m of manual) console.log("- " + m);
+  }
+  console.log("\n改完运行 npm run standalone 在本机试一下，或者 npm run install:local 装到本机平台。");
+}
+
+if (process.argv[2] === "add") {
+  rl.close();
+  try {
+    addFeature(process.argv[3]);
+  } catch (err) {
+    console.error("错误: " + err.message);
+    process.exit(1);
+  }
+} else main().catch((err) => {
   rl.close();
   console.error("错误: " + err.message);
   process.exit(1);

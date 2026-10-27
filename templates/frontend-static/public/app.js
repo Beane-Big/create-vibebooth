@@ -29,14 +29,12 @@ function renderNote(note, prepend) {
 }
 
 async function load() {
-  if (!hasBackend) return;
+  const me = await getMe();
+  if (me.name) document.getElementById("greeting").textContent = "你好，" + me.name;
+  if (!hasData) return;
   try {
-    const me = await request("/api/__ID__/me");
-    document.getElementById("greeting").textContent = "你好，" + me.name;
-    if (hasData) {
-      document.getElementById("notes-card").hidden = false;
-      (await request("/api/__ID__/notes")).forEach((n) => renderNote(n, false));
-    }
+    document.getElementById("notes-card").hidden = false;
+    (await request("/api/__ID__/notes")).forEach((n) => renderNote(n, false));
   } catch (err) {
     showError(err);
   }
