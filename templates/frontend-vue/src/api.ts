@@ -1,4 +1,3 @@
-export type Me = { name: string; menus: string[] };
 export type Note = { id: number; text: string; author: string; createdAt: string };
 
 export class ApiError extends Error {
@@ -11,7 +10,7 @@ export class ApiError extends Error {
 }
 
 // 调用本模块后端的对内接口；登录 Cookie 由浏览器自动带上，网关负责校验。
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
@@ -27,7 +26,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  me: () => request<Me>("/api/__ID__/me"),
   notes: () => request<Note[]>("/api/__ID__/notes"),
   addNote: (text: string) => request<Note>("/api/__ID__/notes", { method: "POST", body: JSON.stringify({ text }) }),
 };

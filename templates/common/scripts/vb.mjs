@@ -6,10 +6,12 @@
 //   node scripts/vb.mjs source    生成 dist/<id>-<版本>-source.zip，上传到平台的构建器（不要 Docker）
 //   node scripts/vb.mjs install   打包并装到本机平台
 //   node scripts/vb.mjs dev       启动前端开发服务器
+//   node scripts/vb.mjs standalone   离开平台单独运行：后端开独立模式，前端接到本机后端
 //   node scripts/vb.mjs rename <新 id> [新名称]   改模块 id 和名称，改 id 要在第一次装到平台之前
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { createServer, request as httpRequest } from "node:http";
+import { basename, extname, join, normalize, relative, resolve, sep } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
 const root = resolve(import.meta.dirname, "..");
@@ -121,7 +123,7 @@ function install() {
 
 // 源码包里不放的东西：依赖、构建产物和本机缓存，服务器构建时会重新下载和生成。
 const sourceExcludeNames = ["node_modules", ".git", ".cache"];
-const sourceExcludeDirs = ["dist/", "frontend/dist/", "backend/vendor/"];
+const sourceExcludeDirs = ["dist/", ".data/", "frontend/dist/", "backend/vendor/"];
 
 // sourceFiles 列出要放进源码包的文件。是 git 仓库时按 git 的规则（已提交的和没被 .gitignore 忽略的新文件），
 // 否则遍历目录；两种情况都去掉上面这些目录。
@@ -273,7 +275,87 @@ function dev() {
   run("npm", ["run", "dev"], { cwd: frontend });
 }
 
-const commands = { pack, source, install, dev, rename };
+// ---- 独立运行 ----
+
+// 独立运行时后端监听的地址，和容器里一样是 8000 端口。
+const standaloneBackend = "http://localhost:8000";
+
+// standalone 离开平台单独运行模块：后端编译后开独立模式运行（要本机装 Go），数据放在 .data/；
+// 前端开发服务器把接口转给这个后端，纯静态页面由这里起一个小服务器。按 Ctrl+C 一起退出。
+function standalone() {
+  const { id } = manifest();
+  const backend = join(root, "backend");
+  const frontend = join(root, "frontend");
+  const children = [];
+  const start = (cmd, args, opts) => {
+    const child = spawn(cmd, args, { cwd: root, stdio: "inherit", shell: isWindows && cmd === "npm", ...opts });
+    child.on("exit", (code) => {
+      if (code) console.error(`${cmd} 退出了（${code}）`);
+    });
+    children.push(child);
+  };
+
+  if (existsSync(join(backend, "main.go"))) {
+    if (!output("go", ["version"])) die("独立运行后端要在本机装 Go：https://go.dev/dl/");
+    const data = join(root, ".data");
+    mkdirSync(data, { recursive: true });
+    // 先编译再直接运行，退出时才能把后端一起停掉（go run 不会把信号转给它编出来的程序）。
+    // 没有 go.sum 时（依赖平时在构建镜像时才补齐）让 go 自己下载。
+    const bin = join(data, isWindows ? "backend.exe" : "backend");
+    console.log("编译后端…");
+    run("go", ["build", "-o", bin, "."], { cwd: backend, env: { ...process.env, GOFLAGS: "-mod=mod" } });
+    start(bin, [], { cwd: backend, env: { ...process.env, STANDALONE: "1", DATA_DIR: data } });
+    console.log(`后端：${standaloneBackend}/api/${id}/me（独立模式，拥有全部权限的本地用户）`);
+  }
+  if (existsSync(join(frontend, "package.json"))) {
+    if (!existsSync(join(frontend, "node_modules"))) run("npm", ["install"], { cwd: frontend });
+    // 直接用 node 运行 vite，不经过 npm，退出时才能停干净。
+    start(process.execPath, [join("node_modules", "vite", "bin", "vite.js")], { cwd: frontend, env: { ...process.env, VB_API: standaloneBackend } });
+  } else if (existsSync(join(frontend, "public"))) {
+    serveStatic(id, join(frontend, "public"));
+  }
+
+  const stop = () => {
+    for (const child of children) child.kill();
+    process.exit(0);
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+}
+
+const contentTypes = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
+
+// serveStatic 在 5173 端口提供纯静态页面，路径和装到平台后一样在 /apps/<id>/ 下，/api/ 转给本机后端。
+function serveStatic(id, dir) {
+  const base = `/apps/${id}/`;
+  createServer((req, res) => {
+    const path = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+    if (path.startsWith("/api/")) {
+      const proxied = httpRequest(standaloneBackend + req.url, { method: req.method, headers: req.headers }, (back) => {
+        res.writeHead(back.statusCode, back.headers);
+        back.pipe(res);
+      });
+      proxied.on("error", () => {
+        res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: "本机后端没有在运行" }));
+      });
+      req.pipe(proxied);
+      return;
+    }
+    if (!path.startsWith(base)) {
+      res.writeHead(302, { Location: base });
+      res.end();
+      return;
+    }
+    let file = normalize(join(dir, path.slice(base.length)));
+    if (!file.startsWith(dir)) file = dir;
+    if (!existsSync(file) || statSync(file).isDirectory()) file = join(dir, "index.html");
+    res.writeHead(200, { "Content-Type": contentTypes[extname(file)] ?? "application/octet-stream", "Cache-Control": "no-cache" });
+    res.end(readFileSync(file));
+  }).listen(5173, () => console.log(`页面：http://localhost:5173${base}`));
+}
+
+const commands = { pack, source, install, dev, rename, standalone };
 const cmd = commands[process.argv[2]];
-if (!cmd) die("用法: node scripts/vb.mjs pack | source | install | dev | rename <新 id> [新名称]");
+if (!cmd) die("用法: node scripts/vb.mjs pack | source | install | dev | standalone | rename <新 id> [新名称]");
 cmd();

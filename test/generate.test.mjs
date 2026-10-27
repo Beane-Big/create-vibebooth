@@ -1,11 +1,12 @@
-// 运行：npm test。把每种前后端组合都生成一遍，检查文件和占位符。
+// 运行：npm test。把每种前后端组合都生成一遍，检查文件和占位符；再检查 add 命令。
 // 设置 VB_E2E=1 时，再对每个组合运行 npm run install:local，装到本机正在运行的平台上（需要 Docker 和平台）。
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { add } from "../lib/add.mjs";
 import { backends, frontends, generate, validate } from "../lib/generate.mjs";
 
 const combos = [];
@@ -83,3 +84,53 @@ for (const combo of combos) {
     }
   });
 }
+
+test("add 一级一级升上去，和直接生成的一样", () => {
+  const root = mkdtempSync(join(tmpdir(), "vb-test-"));
+  try {
+    const up = join(root, "up");
+    const direct = join(root, "direct");
+    const opts = { id: "t-add", name: "测试", description: "测试用的模块", frontend: "react" };
+    generate(up, { ...opts, backend: "none", data: false });
+    generate(direct, { ...opts, backend: "go", data: true });
+    assert.match(readFileSync(join(up, "AGENTS.md"), "utf8"), /^当前等级：0/m);
+    assert.match(readFileSync(join(direct, "AGENTS.md"), "utf8"), /^当前等级：2/m);
+    assert.throws(() => add(up, "permissions"), /先运行 add backend/);
+
+    for (const feature of ["backend", "data", "permissions", "persons"]) {
+      assert.deepEqual(add(up, feature).manual.filter((m) => !m.startsWith("前端")), [], feature);
+    }
+    assert.throws(() => add(up, "backend"), /已经有后端/);
+    for (const f of ["compose.yaml", "backend/main.go", "backend/store.go", "backend/go.mod", "frontend/src/config.ts"]) {
+      assert.equal(readFileSync(join(up, f), "utf8"), readFileSync(join(direct, f), "utf8"), f);
+    }
+    assert.ok(existsSync(join(up, "backend", ".gitignore")));
+    assert.ok(existsSync(join(up, "backend", "persons.go")));
+    assert.match(readFileSync(join(up, "AGENTS.md"), "utf8"), /^当前等级：4/m);
+    assert.match(readFileSync(join(up, "module.yaml"), "utf8"), /^permissions: .*\n {2}- \{id: edit/m);
+    for (const f of files(up)) assert.doesNotMatch(readFileSync(f, "utf8"), /__[A-Z_]+__/, `${f} 里还有没替换的占位符`);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("add 不覆盖改过的文件", () => {
+  const root = mkdtempSync(join(tmpdir(), "vb-test-"));
+  try {
+    const dir = join(root, "m");
+    generate(dir, { id: "t-keep", name: "测试", frontend: "static", backend: "go", data: false });
+    const compose = join(dir, "compose.yaml");
+    const main = join(dir, "backend", "main.go");
+    writeFileSync(compose, readFileSync(compose, "utf8") + "# 自己改的\n");
+    writeFileSync(main, readFileSync(main, "utf8") + "// 自己改的\n");
+    const { manual } = add(dir, "data");
+    assert.match(readFileSync(compose, "utf8"), /# 自己改的/);
+    assert.match(readFileSync(main, "utf8"), /\/\/ 自己改的/);
+    assert.ok(manual.some((m) => m.startsWith("compose.yaml 改过了")));
+    assert.ok(manual.some((m) => m.startsWith("backend/main.go 改过了")));
+    assert.ok(existsSync(join(dir, "backend", "store.go")));
+    assert.match(readFileSync(join(dir, "frontend", "public", "config.js"), "utf8"), /hasData = true/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
