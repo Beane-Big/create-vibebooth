@@ -1,7 +1,7 @@
 {
   "name": "create-vibebooth",
   "version": "0.1.0",
-  "description": "生成一个 Vibebooth 模块：前端可选 React、Vue 或纯静态，后端可选 Go",
+  "description": "生成一个 Vibebooth 模块（前端可选 React、Vue 或纯静态，后端可选 Go）或门户主题",
   "type": "module",
   "bin": {
     "create-vibebooth": "index.mjs"
